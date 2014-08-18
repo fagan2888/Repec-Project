@@ -15,11 +15,12 @@ table = table.sort(['Year'])
 current_year = 0
 current_paper_count = 0
 
-for idx in xrange(len(table)):
+#Loop over each row in the table
+for idx in range(len(table)):
 	flag = False
 	current_entry = table[idx: (idx + 1)]
 	cur_idx = current_entry.index[0]
-	# Time
+	# Date
 	if pd.isnull(current_entry.loc[cur_idx]['Year']):
 		flag = True
 		log_file.write("Original Entry " + str(current_entry.loc[cur_idx]['Index']) + " year data is blank.\n")
@@ -45,11 +46,11 @@ for idx in xrange(len(table)):
 		authors = current_entry.loc[cur_idx]['Author'].split(";") # authors are split with semicolon
 		authors_name_first = []
 		authors_name_last = []
-		for i in xrange(len(authors)):
+		for i in range(len(authors)):
 			authors[i] = authors[i].lstrip().rstrip()
 			name_split = re.split(r'[\s,]+', authors[i]) # split whitespace and comma
 			authors_name_last.append(name_split[-1])
-			authors_name_first.append(string.join(name_split[:-1]))
+			authors_name_first.append("".join(name_split[:-1]))
 	
 	# URL
 	if pd.isnull(current_entry.loc[cur_idx]['File URL']):
@@ -62,7 +63,7 @@ for idx in xrange(len(table)):
 		current_paper_count = current_paper_count + 1
 		current_file.write(Template + "\n")
 		current_file.write("Title: " + title + "\n")
-		for i in xrange(len(authors)):
+		for i in range(len(authors)):
 			current_file.write("Author-Name: " + authors[i] + "\n")
 			current_file.write("X-Author-Name-First: " + authors_name_first[i] + "\n")
 			current_file.write("X-Author-Name-Last: " + authors_name_last[i] + "\n")
