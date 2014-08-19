@@ -33,10 +33,12 @@ years = np.array(years, dtype = 'int')
 
 # Generate file headers
 file_list = []
+index_list = []
 for year in years:
 	current_file_name = str(year) + ".rdf"
 	current_file = open(current_file_name, "w")
 	file_list.append(current_file)
+	index_list.append(np.empty(0))
 
 # Loop over each row in the table
 for idx in df.index:
@@ -45,28 +47,35 @@ for idx in df.index:
 	if pd.isnull(df.loc[idx]['Year']):
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " year data is blank.\n")
-	else:
+	elif (not flag):
 		year_index = years.searchsorted(df.loc[idx]['Year'])
 	
 	# Index for current year
 	if pd.isnull(df.loc[idx]['Index']):
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " index data is blank.\n")
-	else:
+	elif (not flag):
 		current_index = df.loc[idx]['Index'].astype('int')
-	
+		position = index_list[year_index].searchsorted(current_index)
+		if (position < len(index_list[year_index])):
+			if (index_list[year_index][position] == current_index):
+				flag = True
+				log_file.write("Original Entry " + str(idx) + " has duplicated index.\n")
+		if (not flag):
+			index_list[year_index] = np.insert(index_list[year_index], position, current_index)
+		
 	# Title
 	if pd.isnull(df.loc[idx]['Title']):
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " title is blank.\n")
-	else:
+	elif (not flag):
 		title = df.loc[idx]['Title']
 	
 	# Author
 	if pd.isnull(df.loc[idx]['Author']):
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " author is blank.\n")
-	else:
+	elif (not flag):
 		authors = df.loc[idx]['Author'].split(";") # authors are split with semicolon
 		authors_name_first = []
 		authors_name_last = []
@@ -80,7 +89,7 @@ for idx in df.index:
 	if pd.isnull(df.loc[idx]['File URL']):
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " URL is blank.\n")
-	else:
+	elif (not flag):
 		file_url = df.loc[idx]['File URL']
 	
 	if (not flag): # Then all necessary information are available
