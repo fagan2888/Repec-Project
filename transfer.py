@@ -1,3 +1,8 @@
+"""
+Author: Peifan Wu
+Last update: 19th August, 2014
+"""
+
 import numpy as np
 import pandas as pd
 import string
@@ -9,71 +14,92 @@ log_file_name = "report.log"
 log_file = open(log_file_name, "w")
 
 excel_file_name = "sample_list.xlsx"
-table = pd.read_excel(excel_file_name, 'Sheet1', index_col = None, na_values = ['NA'])
+df = pd.read_excel(excel_file_name, 'Sheet1', index_col = None)
 
-table = table.sort(['Year'])
-current_year = 0
-current_paper_count = 0
+# Drop empty lines
+df = df.dropna(how = 'all')
 
-#Loop over each row in the table
-for idx in range(len(table)):
+years = []
+for idx in df.index:
 	flag = False
-	current_entry = table[idx: (idx + 1)]
-	cur_idx = current_entry.index[0]
+	for i in xrange(len(years)):
+		if (years[i] == df.loc[idx]['Year']):
+			flag = True
+			break
+	if (not flag):
+		years.append(df.loc[idx]['Year'])
+years.sort()
+years = np.array(years, dtype = 'int')
+
+# Generate file headers
+file_list = []
+for year in years:
+	current_file_name = str(year) + ".rdf"
+	current_file = open(current_file_name, "w")
+	file_list.append(current_file)
+
+# Loop over each row in the table
+for idx in df.index:
+	flag = False
 	# Date
-	if pd.isnull(current_entry.loc[cur_idx]['Year']):
+	if pd.isnull(df.loc[idx]['Year']):
 		flag = True
-		log_file.write("Original Entry " + str(current_entry.loc[cur_idx]['Index']) + " year data is blank.\n")
-	elif (current_entry.loc[cur_idx]['Year'] != current_year):
-		if (current_year != 0):
-			current_file.close()
-		current_year = current_entry.loc[cur_idx]['Year']
-		current_file = open(str(current_year) + '.rdf', "w")
-		current_paper_count = 0
+		log_file.write("Original Entry " + str(idx) + " year data is blank.\n")
+	else:
+		year_index = years.searchsorted(df.loc[idx]['Year'])
+	
+	# Index for current year
+	if pd.isnull(df.loc[idx]['Index']):
+		flag = True
+		log_file.write("Original Entry " + str(idx) + " index data is blank.\n")
+	else:
+		current_index = df.loc[idx]['Index'].astype('int')
 	
 	# Title
-	if pd.isnull(current_entry.loc[cur_idx]['Title']):
+	if pd.isnull(df.loc[idx]['Title']):
 		flag = True
-		log_file.write("Original Entry " + str(current_entry.loc[cur_idx]['Index']) + " title is blank.\n")
+		log_file.write("Original Entry " + str(idx) + " title is blank.\n")
 	else:
-		title = current_entry.loc[cur_idx]['Title']
+		title = df.loc[idx]['Title']
 	
 	# Author
-	if pd.isnull(current_entry.loc[cur_idx]['Author']):
+	if pd.isnull(df.loc[idx]['Author']):
 		flag = True
-		log_file.write("Original Entry " + str(current_entry.loc[cur_idx]['Index']) + " author is blank.\n")
+		log_file.write("Original Entry " + str(idx) + " author is blank.\n")
 	else:
-		authors = current_entry.loc[cur_idx]['Author'].split(";") # authors are split with semicolon
+		authors = df.loc[idx]['Author'].split(";") # authors are split with semicolon
 		authors_name_first = []
 		authors_name_last = []
 		for i in range(len(authors)):
 			authors[i] = authors[i].lstrip().rstrip()
 			name_split = re.split(r'[\s,]+', authors[i]) # split whitespace and comma
 			authors_name_last.append(name_split[-1])
-			authors_name_first.append("".join(name_split[:-1]))
+			authors_name_first.append(" ".join(name_split[:-1]))
 	
 	# URL
-	if pd.isnull(current_entry.loc[cur_idx]['File URL']):
+	if pd.isnull(df.loc[idx]['File URL']):
 		flag = True
-		log_file.write("Original Entry " + str(current_entry.loc[cur_idx]['Index']) + " URL is blank.\n")
+		log_file.write("Original Entry " + str(idx) + " URL is blank.\n")
 	else:
-		file_url = current_entry.loc[cur_idx]['File URL']
+		file_url = df.loc[idx]['File URL']
 	
 	if (not flag): # Then all necessary information are available
-		current_paper_count = current_paper_count + 1
-		current_file.write(Template + "\n")
-		current_file.write("Title: " + title + "\n")
+		file_list[year_index].write(Template + "\n")
+		file_list[year_index].write("Title: " + title + "\n")
 		for i in range(len(authors)):
-			current_file.write("Author-Name: " + authors[i] + "\n")
-			current_file.write("X-Author-Name-First: " + authors_name_first[i] + "\n")
-			current_file.write("X-Author-Name-Last: " + authors_name_last[i] + "\n")
-		current_file.write("File-URL:\n")
-		current_file.write(file_url + "\n")
-		current_file.write("File-Format: application/pdf\n")
-		current_file.write("Cureation-Date: " + str(current_year) + "\n")
-		current_file.write("Handle: RePEc:ste:nystbu:" + str(current_year % 1000) + "-" + str(current_paper_count).zfill(2) + "\n")
-		current_file.write("\n")
-		log_file.write("Original Entry " + str(current_entry.loc[cur_idx]['Index']) + " processed successfully.\n")
+			file_list[year_index].write("Author-Name: " + authors[i] + "\n")
+			file_list[year_index].write("X-Author-Name-First: " + authors_name_first[i] + "\n")
+			file_list[year_index].write("X-Author-Name-Last: " + authors_name_last[i] + "\n")
+		file_list[year_index].write("File-URL:\n")
+		file_list[year_index].write(file_url + "\n")
+		file_list[year_index].write("File-Format: application/pdf\n")
+		file_list[year_index].write("Creation-Date: " + str(years[year_index]) + "\n")
+		file_list[year_index].write("Handle: RePEc:ste:nystbu:" + str(years[year_index] % 1000) + "-" + str(current_index).zfill(2) + "\n")
+		file_list[year_index].write("\n")
+		log_file.write("Original Entry " + str(idx) + " processed successfully.\n")
 		
-current_file.close()
+# Close all the generated files
+for file in file_list:
+	file.close()
+# Close log file
 log_file.close()
