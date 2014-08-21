@@ -1,14 +1,25 @@
 """
 Author: Peifan Wu
-Last update: 19th August, 2014
+Last update: 21st August, 2014
 """
 
+import codecs
 import numpy as np
 import pandas as pd
 import string
 import re
 
-Template = "Template-Type: ReDIF-Paper 1.0"
+def url_valid(url):
+    regex = re.compile(
+        r'^https?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
+        r'localhost|'  # localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return regex.search(url)
+
+Template = u"Template-Type: ReDIF-Paper 1.0"
 
 log_file_name = "report.log"
 log_file = open(log_file_name, "w")
@@ -27,9 +38,8 @@ for idx in df.index:
 			flag = True
 			break
 	if (not flag):
-		#if isinstance(df.loc[idx]['Year'], float):
-		cur_number = df.loc[idx]['Year'].astype('int')
-		years.append(cur_number)
+		# if isinstance(df.loc[idx]['Year'], int):
+		years.append(df.loc[idx]['Year'])
 			
 years.sort()
 years = np.array(years, dtype = 'int')
@@ -39,7 +49,7 @@ file_list = []
 index_list = []
 for year in years:
 	current_file_name = str(year) + ".rdf"
-	current_file = open(current_file_name, "w")
+	current_file = codecs.open(current_file_name, encoding = 'utf-8', mode = "w")
 	file_list.append(current_file)
 	index_list.append(np.empty(0))
 
@@ -52,7 +62,11 @@ for idx in df.index:
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " year data is blank.\n")
 	elif (not flag):
-		year_index = years.searchsorted(df.loc[idx]['Year'].astype('int'))
+		# if isinstance(df.loc[idx]['Year'], int):
+		year_index = years.searchsorted(df.loc[idx]['Year'])
+		# else:
+		#	flag = True
+		#	log_file.write("Original Entry " + str(idx) + " year data has wrong format.\n")
 	
 	# Index for current year
 	if pd.isnull(df.loc[idx]['Index']):
@@ -94,22 +108,25 @@ for idx in df.index:
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " URL is blank.\n")
 	elif (not flag):
-		# TODO: add some regular expression here to check whether URL is legal 
-		file_url = df.loc[idx]['File URL']
+		if url_valid(df.loc[idx]['File URL']):
+			file_url = df.loc[idx]['File URL']
+		else:
+			flag = True
+			log_file.write("Original Entry " + str(idx) + " URL is invalid.\n")
 	
 	if (not flag): # Then all necessary information are available
-		file_list[year_index].write(Template + "\n")
-		file_list[year_index].write("Title: " + title + "\n")
+		file_list[year_index].write(Template + u"\n")
+		file_list[year_index].write(u"Title: " + title + u"\n")
 		for i in range(len(authors)):
-			file_list[year_index].write("Author-Name: " + authors[i] + "\n")
-			file_list[year_index].write("X-Author-Name-First: " + authors_name_first[i] + "\n")
-			file_list[year_index].write("X-Author-Name-Last: " + authors_name_last[i] + "\n")
-		file_list[year_index].write("File-URL:\n")
-		file_list[year_index].write(file_url + "\n")
-		file_list[year_index].write("File-Format: application/pdf\n")
-		file_list[year_index].write("Creation-Date: " + str(years[year_index]) + "\n")
-		file_list[year_index].write("Handle: RePEc:ste:nystbu:" + str(years[year_index] % 1000) + "-" + str(current_index).zfill(2) + "\n")
-		file_list[year_index].write("\n")
+			file_list[year_index].write(u"Author-Name: " + authors[i] + u'\n')
+			file_list[year_index].write(u"X-Author-Name-First: " + authors_name_first[i] + u'\n')
+			file_list[year_index].write(u"X-Author-Name-Last: " + authors_name_last[i] + u'\n')
+		file_list[year_index].write(u"File-URL:\n")
+		file_list[year_index].write(file_url + u"\n")
+		file_list[year_index].write(u"File-Format: application/pdf\n")
+		file_list[year_index].write(u"Creation-Date: " + str(years[year_index]) + u"\n")
+		file_list[year_index].write(u"Handle: RePEc:ste:nystbu:" + str(years[year_index] % 1000) + "-" + str(current_index).zfill(2) + u"\n")
+		file_list[year_index].write(u"\n")
 		# log_file.write("Original Entry " + str(idx) + " processed successfully.\n")
 	else:
 		All_correct = False
