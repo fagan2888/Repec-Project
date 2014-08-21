@@ -27,7 +27,10 @@ for idx in df.index:
 			flag = True
 			break
 	if (not flag):
-		years.append(df.loc[idx]['Year'])
+		#if isinstance(df.loc[idx]['Year'], float):
+		cur_number = df.loc[idx]['Year'].astype('int')
+		years.append(cur_number)
+			
 years.sort()
 years = np.array(years, dtype = 'int')
 
@@ -41,6 +44,7 @@ for year in years:
 	index_list.append(np.empty(0))
 
 # Loop over each row in the table
+All_correct = True
 for idx in df.index:
 	flag = False
 	# Date
@@ -48,7 +52,7 @@ for idx in df.index:
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " year data is blank.\n")
 	elif (not flag):
-		year_index = years.searchsorted(df.loc[idx]['Year'])
+		year_index = years.searchsorted(df.loc[idx]['Year'].astype('int'))
 	
 	# Index for current year
 	if pd.isnull(df.loc[idx]['Index']):
@@ -90,6 +94,7 @@ for idx in df.index:
 		flag = True
 		log_file.write("Original Entry " + str(idx) + " URL is blank.\n")
 	elif (not flag):
+		# TODO: add some regular expression here to check whether URL is legal 
 		file_url = df.loc[idx]['File URL']
 	
 	if (not flag): # Then all necessary information are available
@@ -105,7 +110,14 @@ for idx in df.index:
 		file_list[year_index].write("Creation-Date: " + str(years[year_index]) + "\n")
 		file_list[year_index].write("Handle: RePEc:ste:nystbu:" + str(years[year_index] % 1000) + "-" + str(current_index).zfill(2) + "\n")
 		file_list[year_index].write("\n")
-		log_file.write("Original Entry " + str(idx) + " processed successfully.\n")
+		# log_file.write("Original Entry " + str(idx) + " processed successfully.\n")
+	else:
+		All_correct = False
+
+if (All_correct):
+	log_file.write("All entries are processed successfully.\n")
+else:
+	log_file.write("Problems are listed above.\n")
 		
 # Close all the generated files
 for file in file_list:
